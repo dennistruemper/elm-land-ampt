@@ -4,8 +4,11 @@
   "main": "backend/index.ts",
   "type": "module",
   "scripts": {
-    "ampt:test": "vitest",
-    "build:fe": "npx elm-land build && rm -rf static && mv dist static"
+    "ampt:test": "vitest --run",
+    "dev-test": "npx ampt run test-all --test-stage",
+    "ampt:test-all": "vitest run",
+    "build:fe": "npx elm-land build && rm -rf static && mv dist static",
+    "deploy": "npm run build:fe && npx ampt deploy $1"
   },
   "dependencies": {
     "@ampt/data": "0.0.1-beta.19",
