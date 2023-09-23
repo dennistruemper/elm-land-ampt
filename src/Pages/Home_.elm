@@ -1,11 +1,12 @@
 module Pages.Home_ exposing (Model, Msg, page)
 
-import Api.Counter exposing (Data)
+import Api.Counter exposing (Data, getNewCountFromMessage)
 import Effect exposing (Effect)
 import Html
 import Html.Events
 import Http
 import Page exposing (Page)
+import Ports exposing (toElm)
 import Route exposing (Route)
 import Shared
 import View exposing (View)
@@ -26,13 +27,13 @@ page shared route =
 
 
 type alias Model =
-    { countData : Data Int, count : Int }
+    { countData : Data Int, count : Int, fromJS : Maybe String }
 
 
 init : Shared.Model -> () -> ( Model, Effect Msg )
 init shared () =
-    ( { countData = Api.Counter.Loading, count = 0 }
-    , Effect.sendCmd (Api.Counter.getCounter { onResponse = GotNewCountResponse, counterId = "test", baseUrl = shared.baseUrl })
+    ( { countData = Api.Counter.Loading, count = 0, fromJS = Nothing }
+    , Effect.sendCmd (Api.Counter.getCounter { onResponse = GotNewCountResponse, counterId = "global", baseUrl = shared.baseUrl })
     )
 
 
@@ -44,6 +45,7 @@ type Msg
     = Increment
     | Decrement
     | GotNewCountResponse (Result Http.Error Int)
+    | ReceivedDataFromJavaScript String
 
 
 update : Shared.Model -> Msg -> Model -> ( Model, Effect Msg )
@@ -51,12 +53,12 @@ update shared msg model =
     case msg of
         Increment ->
             ( model
-            , Effect.sendCmd <| Api.Counter.changeCounter { onResponse = GotNewCountResponse, counterId = "test", amount = 1, baseUrl = shared.baseUrl }
+            , Effect.sendCmd <| Api.Counter.changeCounter { onResponse = GotNewCountResponse, counterId = "global", amount = 1, baseUrl = shared.baseUrl }
             )
 
         Decrement ->
             ( model
-            , Effect.sendCmd <| Api.Counter.changeCounter { onResponse = GotNewCountResponse, counterId = "test", amount = -1, baseUrl = shared.baseUrl }
+            , Effect.sendCmd <| Api.Counter.changeCounter { onResponse = GotNewCountResponse, counterId = "global", amount = -1, baseUrl = shared.baseUrl }
             )
 
         GotNewCountResponse countResult ->
@@ -69,6 +71,18 @@ update shared msg model =
                 Ok count ->
                     ( { model | countData = Api.Counter.Success count, count = count }, Effect.none )
 
+        ReceivedDataFromJavaScript dataFromJS ->
+            let
+                newCount =
+                    case getNewCountFromMessage dataFromJS of
+                        Nothing ->
+                            model.count
+
+                        Just countFromMessage ->
+                            countFromMessage
+            in
+            ( { model | fromJS = Just dataFromJS, count = newCount }, Effect.none )
+
 
 
 -- SUBSCRIPTIONS
@@ -76,7 +90,7 @@ update shared msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    toElm ReceivedDataFromJavaScript
 
 
 

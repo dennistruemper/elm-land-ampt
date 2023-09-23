@@ -16,6 +16,21 @@ counterDecoder =
     Decode.field "count" Decode.int
 
 
+newCounterDecoder : Decode.Decoder Int
+newCounterDecoder =
+    Decode.field "newCount" Decode.int
+
+
+getNewCountFromMessage : String -> Maybe Int
+getNewCountFromMessage message =
+    case Decode.decodeString newCounterDecoder message of
+        Ok count ->
+            Just count
+
+        Err _ ->
+            Nothing
+
+
 getCounter : { onResponse : Result Http.Error Int -> msg, counterId : String, baseUrl : String } -> Cmd msg
 getCounter options =
     Http.get
